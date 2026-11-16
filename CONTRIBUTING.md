@@ -182,6 +182,7 @@ Una tarea o issue se considera formalmente **Terminado** cuando:
 | Agrega o modifica tokens visuales, colores o pautas de interfaz | [`DESIGN.md`](DESIGN.md) (global), [`apps/web/DESIGN.md`](apps/web/DESIGN.md) o [`apps/mobile/DESIGN.md`](apps/mobile/DESIGN.md) |
 | Cambia reglas de calidad, cobertura mínima o criterios UI/UX    | [`docs/QUALITY_STANDARDS.md`](docs/QUALITY_STANDARDS.md)                                                                         |
 | Cambia convenciones de código, linters o comandos               | [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)                                                                           |
+| Cambia herramientas de desarrollo, entorno o setup del agente   | [`docs/SETUP.md`](docs/SETUP.md)                                                                                                 |
 | Cambia reglas duras operativas o guías para asistentes de IA    | [`AGENTS.md`](AGENTS.md)                                                                                                         |
 | Modifica requerimientos funcionales, arquitectura o modelo C4   | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) y [`docs/C4_MODEL.md`](docs/C4_MODEL.md)                                          |
 

@@ -28,17 +28,18 @@ Tutor virtual interactivo y red social de aprendizaje para **instrumentos de vie
 
 ## Dónde buscar
 
-| Necesito…                                                             | Documento                                                                                                               |
-| :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| Entender módulos, flujos entre servicios y arquitectura               | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                                          |
-| Modelo C4 formal (Contexto, Contenedores, Componentes, Código)        | [`docs/C4_MODEL.md`](docs/C4_MODEL.md)                                                                                  |
-| Tokens de diseño, paleta semántica y ergonomía táctil                 | [`DESIGN.md`](DESIGN.md), [`apps/web/DESIGN.md`](apps/web/DESIGN.md) y [`apps/mobile/DESIGN.md`](apps/mobile/DESIGN.md) |
-| Estándares de calidad de software (ISO/IEC 25010) y ergonomía UI/UX   | [`docs/QUALITY_STANDARDS.md`](docs/QUALITY_STANDARDS.md)                                                                |
-| Convenciones de código por tecnología, linters y comandos             | [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)                                                                  |
-| Consultar backlog, Sprints (0-3), HUs y trazabilidad de issues GitHub | [`docs/SPRINTS_AND_USER_STORIES.md`](docs/SPRINTS_AND_USER_STORIES.md)                                                  |
-| Estrategias de despliegue dual (VPS vs Multi-Cloud)                   | [`infra/DEPLOYMENT_GUIDE.md`](infra/DEPLOYMENT_GUIDE.md)                                                                |
-| Flujo de trabajo con ramas, commits y PR                              | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                                                    |
-| Licencia del software                                                 | [`LICENSE`](LICENSE)                                                                                                    |
+| Necesito…                                                                  | Documento                                                                                                               |
+| :------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| Entender módulos, flujos entre servicios y arquitectura                    | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                                          |
+| Modelo C4 formal (Contexto, Contenedores, Componentes, Código)             | [`docs/C4_MODEL.md`](docs/C4_MODEL.md)                                                                                  |
+| Tokens de diseño, paleta semántica y ergonomía táctil                      | [`DESIGN.md`](DESIGN.md), [`apps/web/DESIGN.md`](apps/web/DESIGN.md) y [`apps/mobile/DESIGN.md`](apps/mobile/DESIGN.md) |
+| Estándares de calidad de software (ISO/IEC 25010) y ergonomía UI/UX        | [`docs/QUALITY_STANDARDS.md`](docs/QUALITY_STANDARDS.md)                                                                |
+| Convenciones de código por tecnología, linters y comandos                  | [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)                                                                  |
+| Consultar backlog, Sprints (0-3), HUs y trazabilidad de issues GitHub      | [`docs/SPRINTS_AND_USER_STORIES.md`](docs/SPRINTS_AND_USER_STORIES.md)                                                  |
+| Estrategias de despliegue dual (VPS vs Multi-Cloud)                        | [`infra/DEPLOYMENT_GUIDE.md`](infra/DEPLOYMENT_GUIDE.md)                                                                |
+| Flujo de trabajo con ramas, commits y PR                                   | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                                                    |
+| Configurar e instalar herramientas del agente (Gentle AI, CodeGraph, etc.) | [`docs/SETUP.md`](docs/SETUP.md)                                                                                        |
+| Licencia del software                                                      | [`LICENSE`](LICENSE)                                                                                                    |
 
 Leé solo la sección que necesitás, no el archivo entero.
 
@@ -106,104 +107,11 @@ Para trabajar con precisión quirúrgica y evitar suposiciones, usá estrictamen
 
 ---
 
-### Instalación y Configuración para el Agente
-
 > [!IMPORTANT]
-> **Indicaciones**:
-> Al iniciar en este repositorio, el agente **DEBE verificar** la existencia de los ejecutables y herramientas MCP de **Gentle AI**, **CodeGraph** y **Engram**.
+> **Verificación e Instalación Obligatoria de Herramientas**:
+> Al iniciar en este repositorio, el agente **DEBE verificar** la presencia de los ejecutables y herramientas MCP de **Gentle AI**, **CodeGraph**, **Engram** y **Ripgrep**.
 > **Si alguna herramienta NO está instalada o configurada, el agente TIENE LA OBLIGACIÓN de instalarla y configurarla de forma autónoma antes de ejecutar cualquier tarea.**
-
-#### 1. Verificación Inicial de Estado
-
-Ejecutar en la terminal del entorno:
-
-```bash
-gentle-ai --version
-codegraph --version
-engram --version
-rg --version
-```
-
-Y comprobar si las herramientas MCP (`codegraph_explore`, `mem_context`, etc.) están activas en el entorno del agente.
-
-#### 2. Instrucciones de Instalación si Faltan Herramientas
-
-- **Gentle AI** (Ecosistema, workflows, diagnósticos y sincronización):
-  - **Docs & Repo**: [github.com/Gentleman-Programming/gentle-ai](https://github.com/Gentleman-Programming/gentle-ai)
-  - **Instalación**:
-
-    ```bash
-    go install github.com/Gentleman-Programming/gentle-ai@latest
-    ```
-
-    _Alternativa sin Go_: Descargar el binario precompilado desde los [Releases de Gentle AI](https://github.com/Gentleman-Programming/gentle-ai/releases) y añadirlo al PATH del sistema.
-
-  - **Configuración del agente**:
-
-    ```bash
-    gentle-ai install    # Configura agentes en el host (Claude, Antigravity, Cursor, etc.)
-    gentle-ai sync       # Sincroniza configuraciones, reglas y skills
-    gentle-ai doctor     # Verifica la integridad y salud del stack
-    ```
-
-- **CodeGraph** (Inteligencia de código y grafo de dependencias):
-  - **Docs & Repo**: [github.com/colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | [Paquete npm](https://www.npmjs.com/package/@colbymchenry/codegraph)
-  - **Instalación**:
-
-    ```bash
-    pnpm add -g @colbymchenry/codegraph
-    # o bien:
-    npm install -g @colbymchenry/codegraph
-    ```
-
-  - **Configuración e indexación en el proyecto**:
-
-    ```bash
-    codegraph install --yes    # Registra automáticamente el servidor MCP en los agentes detectados
-    # Si la carpeta .codegraph/ no existe en la raíz del proyecto:
-    codegraph init             # Genera el índice local de símbolos y llamadas
-    ```
-
-- **Engram** (Memoria persistente cross-session y protocolo de arquitectura):
-  - **Docs & Repo**: [github.com/Gentleman-Programming/engram](https://github.com/Gentleman-Programming/engram)
-  - **Releases**: [github.com/Gentleman-Programming/engram/releases/latest](https://github.com/Gentleman-Programming/engram/releases/latest)
-  - **Instalación**:
-
-    ```bash
-    go install github.com/Gentleman-Programming/engram/v3/cmd/engram@latest
-    ```
-
-    _Alternativa sin Go_: Descargar el binario release correspondiente al sistema operativo desde GitHub Releases y colocarlo en el PATH.
-
-  - **Inicialización del proyecto**:
-
-    ```bash
-    # Si la carpeta .engram/ no existe en la raíz del proyecto:
-    engram init
-    ```
-
-- **Ripgrep** (`rg`):
-  - **Docs & Repo**: [github.com/BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep)
-  - Instalar mediante el gestor de paquetes del sistema (`winget install BurntSushi.ripgrep.MSVC`, `brew install ripgrep`, `apt install ripgrep` o `cargo install ripgrep`).
-
-#### 3. Configuración MCP Estándar para Agentes
-
-Si el agente o IDE requiere configuración explícita de servidores MCP (ej. en `mcp_config.json`, `~/.claude.json`, o configuración MCP de la plataforma), debe asegurar las siguientes entradas stdio:
-
-```json
-{
-  "mcpServers": {
-    "engram": {
-      "command": "engram",
-      "args": ["mcp", "--tools=agent"]
-    },
-    "codegraph": {
-      "command": "codegraph",
-      "args": ["serve", "--mcp"]
-    }
-  }
-}
-```
+> Consultar la guía completa de comandos, links y configuración en [`docs/SETUP.md`](docs/SETUP.md).
 
 ---
 

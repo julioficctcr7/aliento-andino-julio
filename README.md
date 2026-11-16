@@ -10,20 +10,21 @@ Combina inferencia acústica y postural **100% On-Device (Edge AI)** con detecci
 
 Para mantener el principio de responsabilidad única y no duplicar contenido, los detalles técnicos se encuentran organizados en sus documentos específicos:
 
-| Documento                                                                 | Qué contiene                                                                                      |
-| :------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------ |
-| 📐 [**Arquitectura del Sistema**](docs/ARCHITECTURE.md)                   | Vistas 4+1 de Kruchten, Clean Architecture, flujo de datos y diagrama C4.                         |
-| 🚀 [**Guía de Despliegue e Infraestructura**](infra/DEPLOYMENT_GUIDE.md)  | Estrategia de despliegue dual: VPS monolítico vs Multi-Cloud Serverless/PaaS.                     |
-| 🏛️ [**Modelo C4 de Arquitectura**](docs/C4_MODEL.md)                      | Niveles 1 al 4: Contexto, Contenedores, Componentes y Código del sistema.                         |
-| 🎨 [**Sistema de Diseño Global**](DESIGN.md)                              | Tokens nucleares de color, tipografía base, accesibilidad y semántica andina.                     |
-| 💻 [**Diseño Web Admin (Angular)**](apps/web/DESIGN.md)                   | Grid responsivo de 12 columnas, sidebar, tablas de datos densas y métricas.                       |
-| 📱 [**Diseño Móvil (Flutter)**](apps/mobile/DESIGN.md)                    | Ley de Fitts, HUD de afinación en cents, digigramas andinos y ergonomía táctil.                   |
-| 💎 [**Estándares de Calidad**](docs/QUALITY_STANDARDS.md)                 | Estándar ISO/IEC 25010, ergonomía UI/UX y métricas de calidad de software.                        |
-| 💻 [**Estándares de Codificación**](docs/CODING_STANDARDS.md)             | Convenciones de estilo para Python, TypeScript/Angular, Dart/Flutter y SQL.                       |
-| 📋 [**Sprints e Historias de Usuario**](docs/SPRINTS_AND_USER_STORIES.md) | Backlog Scrum (Sprint 0 a 3), Historias de Usuario (HU-01 a 21) y trazabilidad con GitHub Issues. |
-| 🤝 [**Guía de Contribución**](CONTRIBUTING.md)                            | Flujo Git, ramas protegidas, Conventional Commits y Pull Requests.                                |
-| 🤖 [**Reglas para Agentes de IA**](AGENTS.md)                             | Restricciones duras, mapa de servicios y directivas de desarrollo orgánico.                       |
-| 📖 [**Manual de Usuario Oficial**](apps/docs/)                            | Documentación interactiva en Docusaurus para estudiantes y docentes.                              |
+| Documento                                                                 | Qué contiene                                                                                                         |
+| :------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------- |
+| 📐 [**Arquitectura del Sistema**](docs/ARCHITECTURE.md)                   | Vistas 4+1 de Kruchten, Clean Architecture, flujo de datos y diagrama C4.                                            |
+| 🚀 [**Guía de Despliegue e Infraestructura**](infra/DEPLOYMENT_GUIDE.md)  | Estrategia de despliegue dual: VPS monolítico vs Multi-Cloud Serverless/PaaS.                                        |
+| 🏛️ [**Modelo C4 de Arquitectura**](docs/C4_MODEL.md)                      | Niveles 1 al 4: Contexto, Contenedores, Componentes y Código del sistema.                                            |
+| 🎨 [**Sistema de Diseño Global**](DESIGN.md)                              | Tokens nucleares de color, tipografía base, accesibilidad y semántica andina.                                        |
+| 💻 [**Diseño Web Admin (Angular)**](apps/web/DESIGN.md)                   | Grid responsivo de 12 columnas, sidebar, tablas de datos densas y métricas.                                          |
+| 📱 [**Diseño Móvil (Flutter)**](apps/mobile/DESIGN.md)                    | Ley de Fitts, HUD de afinación en cents, digigramas andinos y ergonomía táctil.                                      |
+| 💎 [**Estándares de Calidad**](docs/QUALITY_STANDARDS.md)                 | Estándar ISO/IEC 25010, ergonomía UI/UX y métricas de calidad de software.                                           |
+| 💻 [**Estándares de Codificación**](docs/CODING_STANDARDS.md)             | Convenciones de estilo para Python, TypeScript/Angular, Dart/Flutter y SQL.                                          |
+| 📋 [**Sprints e Historias de Usuario**](docs/SPRINTS_AND_USER_STORIES.md) | Backlog Scrum (Sprint 0 a 3), Historias de Usuario (HU-01 a 21) y trazabilidad con GitHub Issues.                    |
+| 🛠️ [**Configuración y Setup**](docs/SETUP.md)                             | Instalación del entorno, dependencias globales y herramientas autónomas para agentes (Gentle AI, CodeGraph, Engram). |
+| 🤝 [**Guía de Contribución**](CONTRIBUTING.md)                            | Flujo Git, ramas protegidas, Conventional Commits y Pull Requests.                                                   |
+| 🤖 [**Reglas para Agentes de IA**](AGENTS.md)                             | Restricciones duras, mapa de servicios y directivas de desarrollo orgánico.                                          |
+| 📖 [**Manual de Usuario Oficial**](apps/docs/)                            | Documentación interactiva en Docusaurus para estudiantes y docentes.                                                 |
 
 ---
 
