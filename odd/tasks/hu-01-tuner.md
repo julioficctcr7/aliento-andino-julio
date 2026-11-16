@@ -18,10 +18,11 @@ S10: "Manejo de Errores: Instrumento no soportado: HTTP 400 Bad Request con mens
 
 ## Tasks
 
-- T1 (Specs: S1, S2, S3) [inline]: Implementar AudioCaptureService con buffer circular de 1024 muestras y tests unitarios. (Issue #9 - SUB-01-A)
-- T2 (Specs: S4, S5, S6, S7) [inline]: Implementar TunerBloc, TunerGaugeWidget y TunerScreen consumiendo tokens y tests de widget/bloc. (Issue #10 - SUB-01-B)
-- T3 (Specs: S8, S9, S10) [inline]: Implementar schemas, servicio, router y tests en backend para tolerancias de afinación andina. (Issue #11 - SUB-01-C)
+- [x] T1 (Specs: S1, S2, S3) [inline]: Implementar AudioCaptureService con buffer circular de 1024 muestras y tests unitarios. (Issue #9 - SUB-01-A) — Commit: `eec3f59`
+- [x] T2 (Specs: S4, S5, S6, S7) [inline]: Implementar TunerBloc, TunerGaugeWidget y TunerScreen consumiendo tokens y tests de widget/bloc. (Issue #10 - SUB-01-B) — Commit: `eec3f59`
+- [x] T3 (Specs: S8, S9, S10) [inline]: Implementar schemas, servicio, router y tests en backend para tolerancias de afinación andina. (Issue #11 - SUB-01-C) — Commit: `eec3f59`
 
 ## Log
 
 L1: "Implementa las subissues de la issue #8 perteneciente a la HU-01, utiliza ODD. @[AGENTS.md]"
+L2: "Verificación completa de suites: 79 tests móviles en verde, tests backend de tuning en verde, prettier format y commitlint verificados."
