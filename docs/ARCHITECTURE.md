@@ -9,16 +9,22 @@
 
 ## 1. Vista de Casos de Uso
 
-Los casos de uso del sistema nacen de los Requerimientos Funcionales (RF-01 a RF-06) del dominio de viento andino y las normas de calidad especificadas en [`docs/QUALITY_STANDARDS.md`](QUALITY_STANDARDS.md) y [`docs/C4_MODEL.md`](C4_MODEL.md). Para la planificación ágil completa, el desglose de Historias de Usuario y los issues de GitHub vinculados, consultar [`docs/SPRINTS_AND_USER_STORIES.md`](SPRINTS_AND_USER_STORIES.md). Estos requerimientos condicionan las decisiones arquitectónicas fundamentales:
+Los casos de uso del sistema nacen de los Requerimientos Funcionales (RF-01 a RF-12) del dominio de viento andino y las normas de calidad especificadas en [`docs/QUALITY_STANDARDS.md`](QUALITY_STANDARDS.md) y [`docs/C4_MODEL.md`](C4_MODEL.md). Para la planificación ágil completa, el desglose de Historias de Usuario (HU-01 a HU-21) y los issues de GitHub vinculados, consultar [`docs/SPRINTS_AND_USER_STORIES.md`](SPRINTS_AND_USER_STORIES.md). Estos requerimientos condicionan las decisiones arquitectónicas fundamentales:
 
-| Requisito / HU                                        | Decisión Arquitectónica que Impone                                                                                                    |
-| :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
-| **RF-01 / HU-01 Práctica y Afinación en Tiempo Real** | Motor acústico híbrido local: YIN optimizado para baja latencia ($<50\text{ms}$) + SPICE para precisión armónica.                     |
-| **RF-02 / HU-03 Detección Postural y Embocadura**     | MediaPipe Pose + Hands procesando a $\ge 24\text{ FPS}$ en GPU/NPU del dispositivo móvil. Cero streaming de video a la nube.          |
-| **RF-03 / HU-05 Feedback Pedagógico del Tutor**       | Telemetría compacta en JSON inyectada a un SLM local (Gemma 2 2B / Llama 3.2 1B-3B vía MediaPipe LLM Inference / WebLLM).             |
-| **RF-04 / HU-09 Red Social y Muro Comunitario**       | Capa relacional en PostgreSQL 16 con índices de alto rendimiento (`a1b2c3d4e5f6_add_performance_indexes.py`) y paginación por cursor. |
-| **RF-05 / HU-13 Gamificación y Desafíos Semanales**   | Máquina de estados de rachas (`streak_freezes`) y cálculo asíncrono de puntuaciones y rankings en FastAPI.                            |
-| **RF-06 / HU-17 Gestión Curricular y Panel Docente**  | Panel web en Angular 21 (Standalone + Signals) con control de acceso basado en roles (RBAC) y exportación analítica.                  |
+| Requisito / HU                                                          | Decisión Arquitectónica que Impone                                                                                                         |
+| :---------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| **RF-01 / HU-01 Práctica y Afinación en Tiempo Real**                   | Motor acústico híbrido local: YIN optimizado en C++/Dart para latencia $<50\text{ms}$ con aguja calado/alto y tolerancia configurable.     |
+| **RF-02 / HU-06, HU-07 Detección Postural y Embocadura**                | MediaPipe Pose + Hands procesando a $\ge 24\text{ FPS}$ en GPU/NPU del dispositivo móvil con score ergonómico 0-100. Cero video a la nube. |
+| **RF-03 / HU-08 Feedback Pedagógico del Tutor**                         | Telemetría compacta en JSON inyectada a un SLM local (Gemma 2 2B / Llama 3.2 1B-3B vía MediaPipe LLM Inference / WebLLM offline).          |
+| **RF-04 / HU-03, HU-17 Multi-Instrumento y Conmutación Dinámica**       | BLoC global reactivo en Flutter que conmuta en caliente digigramas, notas toleradas y catálogo para Quena, Zampoña y Tarka.                |
+| **RF-05 / HU-11 Red Social y Muro Comunitario**                         | Capa relacional en PostgreSQL 16 con índices de alto rendimiento (`ix_practice_sessions_user_id`) y paginación por cursor.                 |
+| **RF-06 / HU-02, HU-19 Calibración "Soplo Suave" y Perfil**             | Medición basal RMS de 3 segundos persistida en SQLite local y sincronizada con el perfil del backend (`/api/v1/users/me`).                 |
+| **RF-07 / S0-07, HU-19 Autenticación y Seguridad**                      | JWT con refresh tokens rotativos en tabla `refresh_tokens`, hash Argon2/Bcrypt y control de acceso RBAC.                                   |
+| **RF-08 / HU-13, HU-20 Gamificación, Rachas y Notificaciones**          | Máquina de estados de rachas (`streak_freezes`), niveles por XP y alarmas locales programadas con `flutter_local_notifications`.           |
+| **RF-09 / HU-12 Leaderboards y Rankings por Instrumento**               | Consultas agregadas semanales filtrables por Quena, Zampoña y Tarka con podio animado.                                                     |
+| **RF-10 / HU-04, HU-18 Catálogo Curricular y Modo Offline**             | Sincronización bidireccional y almacenamiento local en Drift SQLite para práctica completa sin conexión a internet.                        |
+| **RF-11 / HU-05, HU-14, HU-21 Panel Docente, Digitaciones y Analítica** | Panel Angular 21 (Standalone + Signals) con CRUD de lecciones, editor gráfico de digitaciones, moderación y dashboard analítico.           |
+| **RF-12 / HU-15 Documentación y Wiki Oficial**                          | Portal Docusaurus 3 compilado como sitio estático y desplegado de forma continua en GitHub Pages vía GitHub Actions.                       |
 
 ---
 
@@ -75,6 +81,18 @@ El diseño arquitectónico prohíbe de forma estricta enviar audio o video crudo
 2. Los modelos on-device (YIN/SPICE y MediaPipe) extraen variables discretas (cents de desviación, nota detectada, ángulo de codos, oclusión de orificios).
 3. Los resultados se sintetizan en un paquete de telemetría liviano (`PracticeResultSchema`).
 4. Únicamente la telemetría agregada y el puntaje final se transmiten al backend para persistencia y sincronización social.
+
+### 2.3 Vista de Datos y Topología Relacional (PostgreSQL 16)
+
+La capa de datos está normalizada bajo PostgreSQL 16 y orquestada con SQLAlchemy 2 Async. Todas las tablas poseen integridad referencial completa y se agrupan en 5 subsistemas conectados:
+
+1. **Núcleo de Identidad y Acceso:** `users`, `refresh_tokens`, `user_xp`.
+2. **Currícula y Digitaciones Andinas:** `categories`, `lessons`, `note_sequences`, `fingerings`.
+3. **Práctica y Telemetría:** `practice_sessions` (conectada a `users` y `lessons`, con `client_id` único para sincronización offline).
+4. **Comunidad y Moderación:** `posts` (con FK opcional a `practice_sessions`), `comments`, `likes`, `follows`, `reports`, `hashtags`, `post_hashtags`, `saved_posts`.
+5. **Gamificación, Alertas y Auditoría:** `achievements`, `user_achievements`, `notifications`, `notification_tokens`, `admin_audit_logs`, `ai_usage_logs`, `app_settings`.
+
+Para el diagrama Entidad-Relación formal en Mermaid y detalle de tipos de columna, consultar [`C4_MODEL.md`](C4_MODEL.md) (Sección 4.1).
 
 ---
 

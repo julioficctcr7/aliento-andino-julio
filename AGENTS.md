@@ -86,19 +86,124 @@ node scripts/ai-attribution.mjs --range origin/main..HEAD # Verificar atribució
 Para trabajar con precisión quirúrgica y evitar suposiciones, usá estrictamente las herramientas indicadas según el tipo de tarea:
 
 1. **CodeGraph (`codegraph_explore`)**:
+   - Repositorio y docs: [github.com/colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | [npm: @colbymchenry/codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph)
    - Usar **siempre** para explorar la estructura del código, árbol de llamadas, símbolos, tipos y dependencias antes de leer archivos completos.
 2. **Ripgrep (`rg`)**:
+   - Repositorio y docs: [github.com/BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep)
    - Usar para búsqueda de texto exacto, literales, JSON, fixtures, variables de entorno y documentación Markdown (`rg -n "patron"`, `rg -F "literal"`).
    - Preferir `rg` sobre `grep`/`find`/`cat`.
 3. **Engram (`mem_context`, `mem_search`, `mem_save`)**:
+   - Repositorio y docs: [github.com/Gentleman-Programming/engram](https://github.com/Gentleman-Programming/engram) | [Releases](https://github.com/Gentleman-Programming/engram/releases/latest)
    - Usar **siempre** al iniciar sesión o antes de decisiones arquitectónicas para consultar el historial del proyecto, PRs activas y convenciones (`mem_context`, `mem_search`).
    - Persistir descubrimientos no triviales, correcciones y convenciones con `mem_save`.
 4. **Gentle AI y ODD (Organic Driven Development)**:
+   - Repositorio y docs: [github.com/Gentleman-Programming/gentle-ai](https://github.com/Gentleman-Programming/gentle-ai)
    - Toda implementación de código debe seguir el protocolo **ODD**, nunca SDD:
      - **Autorizar**: Confirmar que el usuario autorizó mutar código (reviews/investigaciones son de solo lectura).
      - **Explorar**: Mapear antes de escribir usando CodeGraph y `rg`.
      - **Unidades Revisables**: Trabajar en rebanadas de ~400 líneas con tests y docs al lado.
      - **Verificar**: Probar inline o mediante verificación automatizada contra suites de tests.
+
+---
+
+### Instalación y Configuración para el Agente
+
+> [!IMPORTANT]
+> **Indicaciones**:
+> Al iniciar en este repositorio, el agente **DEBE verificar** la existencia de los ejecutables y herramientas MCP de **Gentle AI**, **CodeGraph** y **Engram**.
+> **Si alguna herramienta NO está instalada o configurada, el agente TIENE LA OBLIGACIÓN de instalarla y configurarla de forma autónoma antes de ejecutar cualquier tarea.**
+
+#### 1. Verificación Inicial de Estado
+
+Ejecutar en la terminal del entorno:
+
+```bash
+gentle-ai --version
+codegraph --version
+engram --version
+rg --version
+```
+
+Y comprobar si las herramientas MCP (`codegraph_explore`, `mem_context`, etc.) están activas en el entorno del agente.
+
+#### 2. Instrucciones de Instalación si Faltan Herramientas
+
+- **Gentle AI** (Ecosistema, workflows, diagnósticos y sincronización):
+  - **Docs & Repo**: [github.com/Gentleman-Programming/gentle-ai](https://github.com/Gentleman-Programming/gentle-ai)
+  - **Instalación**:
+
+    ```bash
+    go install github.com/Gentleman-Programming/gentle-ai@latest
+    ```
+
+    _Alternativa sin Go_: Descargar el binario precompilado desde los [Releases de Gentle AI](https://github.com/Gentleman-Programming/gentle-ai/releases) y añadirlo al PATH del sistema.
+
+  - **Configuración del agente**:
+
+    ```bash
+    gentle-ai install    # Configura agentes en el host (Claude, Antigravity, Cursor, etc.)
+    gentle-ai sync       # Sincroniza configuraciones, reglas y skills
+    gentle-ai doctor     # Verifica la integridad y salud del stack
+    ```
+
+- **CodeGraph** (Inteligencia de código y grafo de dependencias):
+  - **Docs & Repo**: [github.com/colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | [Paquete npm](https://www.npmjs.com/package/@colbymchenry/codegraph)
+  - **Instalación**:
+
+    ```bash
+    pnpm add -g @colbymchenry/codegraph
+    # o bien:
+    npm install -g @colbymchenry/codegraph
+    ```
+
+  - **Configuración e indexación en el proyecto**:
+
+    ```bash
+    codegraph install --yes    # Registra automáticamente el servidor MCP en los agentes detectados
+    # Si la carpeta .codegraph/ no existe en la raíz del proyecto:
+    codegraph init             # Genera el índice local de símbolos y llamadas
+    ```
+
+- **Engram** (Memoria persistente cross-session y protocolo de arquitectura):
+  - **Docs & Repo**: [github.com/Gentleman-Programming/engram](https://github.com/Gentleman-Programming/engram)
+  - **Releases**: [github.com/Gentleman-Programming/engram/releases/latest](https://github.com/Gentleman-Programming/engram/releases/latest)
+  - **Instalación**:
+
+    ```bash
+    go install github.com/Gentleman-Programming/engram/v3/cmd/engram@latest
+    ```
+
+    _Alternativa sin Go_: Descargar el binario release correspondiente al sistema operativo desde GitHub Releases y colocarlo en el PATH.
+
+  - **Inicialización del proyecto**:
+
+    ```bash
+    # Si la carpeta .engram/ no existe en la raíz del proyecto:
+    engram init
+    ```
+
+- **Ripgrep** (`rg`):
+  - **Docs & Repo**: [github.com/BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep)
+  - Instalar mediante el gestor de paquetes del sistema (`winget install BurntSushi.ripgrep.MSVC`, `brew install ripgrep`, `apt install ripgrep` o `cargo install ripgrep`).
+
+#### 3. Configuración MCP Estándar para Agentes
+
+Si el agente o IDE requiere configuración explícita de servidores MCP (ej. en `mcp_config.json`, `~/.claude.json`, o configuración MCP de la plataforma), debe asegurar las siguientes entradas stdio:
+
+```json
+{
+  "mcpServers": {
+    "engram": {
+      "command": "engram",
+      "args": ["mcp", "--tools=agent"]
+    },
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
 
 ---
 
