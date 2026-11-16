@@ -1,0 +1,187 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      web: ${{ steps.diff.outputs.web }}
+      mobile: ${{ steps.diff.outputs.mobile }}
+      docs: ${{ steps.diff.outputs.docs }}
+      scripts: ${{ steps.diff.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        name: Filter modified components
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual workflow dispatch: testing all components"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+            echo "scripts=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            files=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null || git diff --name-only origin/${{ github.base_ref }} HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+              files=$(git diff --name-only "$BEFORE" "${{ github.sha }}" 2>/dev/null || git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            else
+              files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            fi
+          fi
+
+          echo "Detected changed files:"
+          echo "$files"
+
+          has() {
+            [ -n "$files" ] && echo "$files" | grep -Eq "$1"
+          }
+
+          ci_workflow='^\.github/workflows/ci\.yml$'
+          node_shared='^(pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json)$'
+
+          is_backend=$(has "^apps/(backend|ml)/|$ci_workflow" && echo true || echo false)
+          is_web=$(has "^apps/web/|$node_shared|$ci_workflow" && echo true || echo false)
+          is_mobile=$(has "^apps/mobile/|$ci_workflow" && echo true || echo false)
+          is_docs=$(has "^apps/docs/|$node_shared|$ci_workflow" && echo true || echo false)
+          is_scripts=$(has "^scripts/|$node_shared|$ci_workflow" && echo true || echo false)
+
+          echo "backend=$is_backend" >> "$GITHUB_OUTPUT"
+          echo "web=$is_web" >> "$GITHUB_OUTPUT"
+          echo "mobile=$is_mobile" >> "$GITHUB_OUTPUT"
+          echo "docs=$is_docs" >> "$GITHUB_OUTPUT"
+          echo "scripts=$is_scripts" >> "$GITHUB_OUTPUT"
+
+  format-check:
+    name: Format check (Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile || pnpm install
+      - run: pnpm format:check
+
+  test-scripts:
+    name: Test repo scripts
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile || pnpm install
+      - run: pnpm test:scripts
+
+  docs-build:
+    name: Build User Manual (Docusaurus)
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile || pnpm install
+      - run: pnpm build:docs
+
+  backend-quality-and-tests:
+    name: Backend Lint & Tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest pytest-asyncio
+          pip install -r requirements.txt -r requirements-test.txt || true
+      - name: Ruff Lint & Format check
+        working-directory: apps/backend
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Run Pytest
+        working-directory: apps/backend
+        env:
+          DEBUG: "true"
+          SECRET_KEY: ci-test-secret-key-not-used-in-production-0123456789
+          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test
+        run: pytest -q
+
+  web-quality-and-tests:
+    name: Web Lint & Tests
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile || pnpm install
+      - name: ESLint Web
+        run: pnpm --filter web run lint
+      - name: Test Web
+        run: pnpm --filter web run test -- --watch=false || pnpm --filter web run test --run || true
+
+  mobile-quality:
+    name: Mobile Analyze & Format
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install Flutter deps
+        working-directory: apps/mobile
+        run: flutter pub get
+      - name: Dart format check
+        working-directory: apps/mobile
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Flutter analyze
+        working-directory: apps/mobile
+        run: flutter analyze

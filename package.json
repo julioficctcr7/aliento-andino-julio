@@ -1,0 +1,54 @@
+{
+  "name": "aliento-andino",
+  "version": "1.0.0",
+  "description": "Aliento Andino — Tutor interactivo y red social para instrumentos de viento andinos.",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "dev": "docker compose up -d",
+    "dev:build": "docker compose up -d --build",
+    "dev:down": "docker compose down",
+    "dev:logs": "docker compose logs -f",
+    "docker:db": "docker compose up -d db",
+    "docker:backend": "docker compose up -d backend",
+    "docker:web": "docker compose up -d web",
+    "docker:docs": "docker compose up -d docs",
+    "docker:ml": "docker compose up -d ml",
+    "docker:nginx": "docker compose up -d nginx",
+    "dev:backend:host": "python -m uvicorn app.main:app --reload --app-dir apps/backend --host 0.0.0.0 --port 8000",
+    "dev:web:host": "pnpm --filter web start",
+    "dev:docs:host": "pnpm --filter @aliento-andino/docs start",
+    "dev:ml:host": "python -m uvicorn server:app --reload --app-dir apps/ml --host 0.0.0.0 --port 8001",
+    "dev:mobile:host": "cd apps/mobile && flutter run",
+    "install:all": "pnpm install && pip install -r apps/backend/requirements.txt && pip install -r apps/ml/requirements.txt && cd apps/mobile && flutter pub get",
+    "install:web": "pnpm --filter web install",
+    "install:docs": "pnpm --filter @aliento-andino/docs install",
+    "install:backend": "pip install -r apps/backend/requirements.txt",
+    "install:ml": "pip install -r apps/ml/requirements.txt",
+    "install:mobile": "cd apps/mobile && flutter pub get",
+    "format": "prettier --ignore-path .prettierignore --write \"**/*.+(js|mjs|cjs|ts|tsx|json|md|mdx|yml|yaml)\"",
+    "format:check": "prettier --ignore-path .prettierignore --check \"**/*.+(js|mjs|cjs|ts|tsx|json|md|mdx|yml|yaml)\"",
+    "build:docs": "pnpm --filter @aliento-andino/docs build",
+    "lint:web": "pnpm --filter web run lint",
+    "test:web": "pnpm --filter web run test",
+    "test:scripts": "vitest run",
+    "check:ai-attribution": "node scripts/ai-attribution.mjs",
+    "prepare": "husky || true"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.2",
+    "vitest": "^3.0.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "webpack": "5.97.1"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,json,md,mdx,yml,yaml}": "prettier --ignore-unknown --write"
+  }
+}

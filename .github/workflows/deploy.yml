@@ -1,0 +1,156 @@
+name: Deploy to VPS
+
+# Runs only after CI succeeds on a push to main (merged PR), or manually.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Service to deploy
+        type: choice
+        options: [all, backend, web, docs, ml]
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }} # ej: us-central1-docker.pkg.dev/PROJECT_ID/aliento-andino
+  VM_HOST: ${{ secrets.VM_HOST }} # IP o dominio de la VM
+  VM_USER: ${{ secrets.VM_USER }} # Usuario SSH de la VM
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # --- Build y push imágenes ---
+  build:
+    name: Build & Push Docker Images
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker $(echo $DOCKER_REGISTRY | cut -d'/' -f1) --quiet
+
+      - name: Build & push backend image
+        run: |
+          docker build -t $DOCKER_REGISTRY/aliento-andino-backend:$IMAGE_TAG \
+                        -t $DOCKER_REGISTRY/aliento-andino-backend:latest \
+                        ./apps/backend
+          docker push $DOCKER_REGISTRY/aliento-andino-backend:$IMAGE_TAG
+          docker push $DOCKER_REGISTRY/aliento-andino-backend:latest
+
+      - name: Build & push web image
+        run: |
+          docker build -t $DOCKER_REGISTRY/aliento-andino-web:$IMAGE_TAG \
+                        -t $DOCKER_REGISTRY/aliento-andino-web:latest \
+                        ./apps/web
+          docker push $DOCKER_REGISTRY/aliento-andino-web:$IMAGE_TAG
+          docker push $DOCKER_REGISTRY/aliento-andino-web:latest
+
+  # --- Deploy a la VM ---
+  deploy:
+    name: Deploy to VM
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $VM_HOST >> ~/.ssh/known_hosts
+
+      - name: Copy deployment files to VM
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            infra/docker-compose.yml \
+            $VM_USER@$VM_HOST:~/aliento-andino/
+
+          scp -i ~/.ssh/deploy_key -r \
+            infra/nginx/ \
+            $VM_USER@$VM_HOST:~/aliento-andino/
+
+      - name: Deploy on VM
+        run: |
+          ssh -i ~/.ssh/deploy_key $VM_USER@$VM_HOST << 'EOF'
+            cd ~/aliento-andino
+
+            # Autenticar Docker con Artifact Registry
+            gcloud auth configure-docker $(echo ${{ env.DOCKER_REGISTRY }} | cut -d'/' -f1) --quiet
+
+            # Setear tag de imagen y registry para docker-compose.yml interpolation
+            export IMAGE_TAG=${{ env.IMAGE_TAG }}
+            export DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
+
+            # Pull nuevas imágenes y recrear contenedores
+            docker compose --env-file .env.production pull backend web
+            docker compose --env-file .env.production up -d --no-deps backend web
+
+            # Reiniciar nginx para re-resolver DNS de los nuevos containers
+            docker compose --env-file .env.production restart nginx
+
+            # Actualizar esquema con Alembic
+            docker compose --env-file .env.production exec -T backend alembic upgrade head < /dev/null
+
+            # Ejecutar seeds (idempotentes)
+            docker compose --env-file .env.production exec -T backend python seed_all.py < /dev/null
+
+            # Limpiar imágenes viejas
+            docker image prune -f
+
+            echo "Deploy completado: $IMAGE_TAG"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key $VM_USER@$VM_HOST << 'EOF'
+            set -e
+            cd ~/aliento-andino
+            echo "=== Contenedores activos ==="
+            docker compose --env-file .env.production ps
+            echo ""
+            echo "=== Health check backend ==="
+            backend_ready=false
+            for attempt in {1..12}; do
+              if curl -sf --connect-timeout 2 --max-time 5 http://localhost:8000/health > /dev/null; then
+                backend_ready=true
+                break
+              fi
+              echo "Esperando backend... ($attempt/12)"
+              sleep 5
+            done
+
+            if [ "$backend_ready" != "true" ]; then
+              echo "Backend FAIL"
+              docker compose --env-file .env.production logs --tail=100 backend
+              exit 1
+            fi
+
+            echo "Backend OK"
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

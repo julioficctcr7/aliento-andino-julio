@@ -1,0 +1,50 @@
+{
+  "semi": false,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "useTabs": false,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["*.py"],
+      "options": {
+        "tabWidth": 4,
+        "printWidth": 100,
+        "useTabs": false
+      }
+    },
+    {
+      "files": ["*.dart"],
+      "options": {
+        "tabWidth": 2,
+        "printWidth": 80,
+        "useTabs": false
+      }
+    },
+    {
+      "files": ["*.sql"],
+      "options": {
+        "tabWidth": 4,
+        "useTabs": false
+      }
+    },
+    {
+      "files": ["*.md", "*.mdx"],
+      "options": {
+        "tabWidth": 2,
+        "printWidth": 100,
+        "proseWrap": "preserve"
+      }
+    },
+    {
+      "files": ["*.json", "*.yml", "*.yaml"],
+      "options": {
+        "tabWidth": 2
+      }
+    }
+  ]
+}
