@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: aliento-andino-db-local
+    environment:
+      POSTGRES_USER: aliento_andino
+      POSTGRES_PASSWORD: localdev123
+      POSTGRES_DB: aliento_andino
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aliento_andino -d aliento_andino"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: aliento-andino-backend-local
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aliento_andino:localdev123@db:5432/aliento_andino
+      SECRET_KEY: dev-secret-key-cambiar-en-produccion
+      GOOGLE_CLIENT_ID: tu-client-id.apps.googleusercontent.com
+      CORS_ORIGINS: '["http://localhost:4200","http://localhost:4000","http://localhost:8000","http://localhost:3001"]'
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: "587"
+      SMTP_USER: tu-email@gmail.com
+      SMTP_PASSWORD: tu-app-password-de-google
+      SMTP_FROM_EMAIL: tu-email@gmail.com
+      FRONTEND_URL: http://localhost:4200
+      DEBUG: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./apps/backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  pgdata_local:

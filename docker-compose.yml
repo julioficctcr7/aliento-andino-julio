@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  # --- Base de Datos Relacional ---
+  db:
+    image: postgres:16-alpine
+    container_name: aliento-andino-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aliento_andino}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_secret_andino_123}
+      POSTGRES_DB: ${POSTGRES_DB:-aliento_andino}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-aliento_andino} -d ${POSTGRES_DB:-aliento_andino}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Backend API REST (FastAPI) ---
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: aliento-andino-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aliento_andino}:${POSTGRES_PASSWORD:-dev_secret_andino_123}@db:5432/${POSTGRES_DB:-aliento_andino}
+      SECRET_KEY: ${SECRET_KEY:-dev_secret_key_aliento_andino_2026}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-dummy-client-id.apps.googleusercontent.com}
+      CORS_ORIGINS: '["http://localhost:4200","http://localhost:4000","http://localhost:8000","http://localhost:3001","http://localhost:80"]'
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-notificaciones@alientoandino.org}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-secret}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-notificaciones@alientoandino.org}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4200}
+      DEBUG: "${DEBUG:-true}"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./apps/backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # --- Panel Administrativo Web (Angular 21) ---
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: aliento-andino-web
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+  # --- Manual de Usuario Oficial (Docusaurus) ---
+  docs:
+    build:
+      context: ./apps/docs
+      dockerfile: Dockerfile
+    container_name: aliento-andino-docs
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+
+  # --- Microservicio de Inferencia Acústica / ML ---
+  ml:
+    build:
+      context: ./apps/ml
+      dockerfile: Dockerfile
+    container_name: aliento-andino-ml
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./apps/ml:/app
+
+  # --- Reverse Proxy Perimetral Nginx ---
+  nginx:
+    image: nginx:alpine
+    container_name: aliento-andino-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - web
+      - docs
+      - ml
+
+volumes:
+  pgdata:

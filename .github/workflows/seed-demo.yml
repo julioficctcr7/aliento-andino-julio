@@ -7,8 +7,8 @@ name: Seed demo (prod)
 #
 # Modos:
 #   append (default, NO destructivo): agrega ~230 usuarios demo
-#       @demo.pianovision.net + su historia. Idempotente. Removible con:
-#       DELETE FROM users WHERE email LIKE '%@demo.pianovision.net';
+#       @demo.aliento-andino.com + su historia. Idempotente. Removible con:
+#       DELETE FROM users WHERE email LIKE '%@demo.aliento-andino.com';
 #   reset (DESTRUCTIVO): borra usuarios de demo y su actividad (PRESERVA los
 #       usuarios admin y el catálogo de lecciones/logros) y reseedea limpio.
 #
@@ -64,8 +64,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key $VM_USER@$VM_HOST << 'EOF'
             set -e
-            cd ~/pianovision
-            SEED_LOG=/tmp/pv_seed_demo.log
+            cd ~/aliento-andino
+            SEED_LOG=/tmp/aa_seed_demo.log
             : > "$SEED_LOG"
             # '< /dev/null' es crítico para que 'exec -T' no se coma el heredoc.
             # SEED_MODE lo interpola GitHub (input choice: append|reset).
