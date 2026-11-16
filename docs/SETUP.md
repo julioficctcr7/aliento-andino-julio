@@ -38,12 +38,15 @@ Y comprobar que las herramientas MCP (`codegraph_explore`, `mem_context`, `mem_s
 #### A. Gentle AI
 
 - **Vía Go**:
+
   ```bash
   go install github.com/Gentleman-Programming/gentle-ai@latest
   ```
+
 - **Alternativa sin Go**:
   Descargar el binario precompilado desde [Gentle AI Releases](https://github.com/Gentleman-Programming/gentle-ai/releases) y añadirlo al `PATH`.
 - **Configuración y sincronización**:
+
   ```bash
   gentle-ai install    # Configura agentes en el host (Claude, Antigravity, Cursor, etc.)
   gentle-ai sync       # Sincroniza configuraciones, reglas y skills del stack
@@ -53,14 +56,19 @@ Y comprobar que las herramientas MCP (`codegraph_explore`, `mem_context`, `mem_s
 #### B. CodeGraph
 
 - **Vía pnpm global** (recomendado):
+
   ```bash
   pnpm add -g @colbymchenry/codegraph
   ```
+
 - **Vía npm global**:
+
   ```bash
   npm install -g @colbymchenry/codegraph
   ```
+
 - **Configuración de MCP y generación de índice**:
+
   ```bash
   codegraph install --yes    # Registra automáticamente el servidor MCP en los agentes detectados
   # Si la carpeta .codegraph/ no existe en la raíz del proyecto:
@@ -70,12 +78,15 @@ Y comprobar que las herramientas MCP (`codegraph_explore`, `mem_context`, `mem_s
 #### C. Engram
 
 - **Vía Go**:
+
   ```bash
   go install github.com/Gentleman-Programming/engram/v3/cmd/engram@latest
   ```
+
 - **Alternativa sin Go**:
   Descargar el binario release correspondiente al sistema operativo desde [Engram Releases](https://github.com/Gentleman-Programming/engram/releases/latest) y colocarlo en el `PATH`.
 - **Inicialización del proyecto**:
+
   ```bash
   # Si la carpeta .engram/ no existe en la raíz del proyecto:
   engram init

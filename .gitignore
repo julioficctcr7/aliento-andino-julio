@@ -38,6 +38,7 @@ REPORTE_DIAGNOSTICO.md
 .vscode/
 .claude/
 .engram/
+.atl/
 *.swp
 *.swo
 *.iml

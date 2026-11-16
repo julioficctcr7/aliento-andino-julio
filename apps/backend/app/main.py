@@ -35,6 +35,7 @@ from app.routers import (
     rankings,
     social,
     subscription,
+    tuning,
     tutor,
     uploads,
     users,
@@ -207,6 +208,7 @@ app.include_router(admin_analytics.router)
 app.include_router(uploads.router)
 app.include_router(notifications.router)
 app.include_router(subscription.router)
+app.include_router(tuning.router)
 app.include_router(tutor.router)
 
 
