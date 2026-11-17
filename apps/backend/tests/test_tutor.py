@@ -1,6 +1,5 @@
 """Agente tutor de IA: endpoint y herramientas de servidor."""
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,13 +12,14 @@ class TestTutorEndpoint:
     async def test_chat_degraded_without_vertex(
         self, client: AsyncClient, auth_headers: dict, monkeypatch
     ):
-        # Sin Vertex configurado, el tutor responde en modo degradado (sin acciones)
-        # pero el endpoint nunca falla.
+        # Sin Vertex configurado, el tutor usa el fallback por reglas y el endpoint
+        # nunca falla. Un saludo no dispara acciones de UI (otras consultas sí
+        # navegan, ver `_smart_tutor_fallback`).
         monkeypatch.setattr(settings, "vertex_project_id", "")
         resp = await client.post(
             "/api/tutor/chat",
             headers=auth_headers,
-            json={"message": "¿cómo practico una lección?"},
+            json={"message": "hola"},
         )
         assert resp.status_code == 200, resp.text
         body = resp.json()
@@ -42,19 +42,13 @@ class TestTutorEndpoint:
         resp = await client.post("/api/tutor/chat", json={"message": "hola"})
         assert resp.status_code == 401
 
-    async def test_chat_valida_mensaje_vacio(
-        self, client: AsyncClient, auth_headers: dict
-    ):
-        resp = await client.post(
-            "/api/tutor/chat", headers=auth_headers, json={"message": ""}
-        )
+    async def test_chat_valida_mensaje_vacio(self, client: AsyncClient, auth_headers: dict):
+        resp = await client.post("/api/tutor/chat", headers=auth_headers, json={"message": ""})
         assert resp.status_code == 422
 
 
 class TestTutorServerTools:
-    async def test_get_user_progress_tool(
-        self, db_session: AsyncSession, test_user: User
-    ):
+    async def test_get_user_progress_tool(self, db_session: AsyncSession, test_user: User):
         result = await tutor_service._tool_get_user_progress(db_session, test_user)
         assert "level" in result
         assert "skill_level" in result
