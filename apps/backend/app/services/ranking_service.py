@@ -2,12 +2,13 @@
 
 import math
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import and_, distinct, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.lesson import PracticeSession
+from app.models.lesson import Lesson, PracticeSession
 from app.models.ranking import Achievement, UserAchievement, UserXP
 from app.models.social import Follow, Post
 from app.models.user import User
@@ -81,6 +82,63 @@ async def get_or_create_user_xp(db: AsyncSession, user_id: uuid.UUID) -> UserXP:
     return user_xp
 
 
+@dataclass(frozen=True)
+class StreakUpdateResult:
+    """Resultado de registrar una práctica sobre la racha diaria."""
+
+    current_streak: int
+    streak_preserved_by_freeze: bool
+    freeze_consumed: bool
+
+
+async def update_user_streak(
+    db: AsyncSession, user_id: uuid.UUID, practice_datetime: datetime
+) -> StreakUpdateResult:
+    """Actualizar la racha diaria del usuario con la práctica en `practice_datetime`.
+
+    El día calendario es el de `practice_datetime` tal como llega: el llamador lo
+    expresa en la zona horaria local del usuario (un datetime naive se toma como local).
+    - Mismo día: no cambia nada (varias prácticas el mismo día no suman).
+    - Día consecutivo: +1.
+    - Salto de exactamente un día con congelador: +1 y consume un congelador.
+    - Cualquier otro salto: la racha vuelve a 1.
+    Cada 7 días de racha se gana un congelador (tope MAX_STREAK_FREEZES).
+    """
+    user_xp = await get_or_create_user_xp(db, user_id)
+    practice_day = practice_datetime.date()
+    last = user_xp.last_practice_date
+
+    advanced = True
+    preserved = False
+    consumed = False
+    if last is None:
+        user_xp.current_streak = 1
+        # Congelador de bienvenida: red de seguridad desde el primer día.
+        if user_xp.streak_freezes < 1:
+            user_xp.streak_freezes = 1
+    elif last == practice_day:
+        advanced = False
+    elif last == practice_day - timedelta(days=1):
+        user_xp.current_streak += 1
+    elif last == practice_day - timedelta(days=2) and user_xp.streak_freezes > 0:
+        user_xp.streak_freezes -= 1
+        user_xp.current_streak += 1
+        preserved = True
+        consumed = True
+    else:
+        user_xp.current_streak = 1  # Racha rota (2+ días o sin congelador)
+
+    if user_xp.current_streak > user_xp.longest_streak:
+        user_xp.longest_streak = user_xp.current_streak
+
+    if advanced and user_xp.current_streak % 7 == 0 and user_xp.streak_freezes < MAX_STREAK_FREEZES:
+        user_xp.streak_freezes += 1
+
+    user_xp.last_practice_date = practice_day
+    await db.flush()
+    return StreakUpdateResult(user_xp.current_streak, preserved, consumed)
+
+
 async def process_practice_xp(
     db: AsyncSession,
     user_id: uuid.UUID,
@@ -94,7 +152,6 @@ async def process_practice_xp(
     Retorna: {xp_earned, new_level, current_level, new_achievements}
     """
     user_xp = await get_or_create_user_xp(db, user_id)
-    today = datetime.now(UTC).date()
     current_monday = get_current_week_monday()
 
     # Resetear weekly_xp si cambió de semana
@@ -131,40 +188,8 @@ async def process_practice_xp(
         n = user_xp.total_practice_sessions
         user_xp.average_score = round(old_avg + (score - old_avg) / n, 2)
 
-    # Actualizar streak (con "congeladores" que protegen ante 1 día perdido).
-    streak_advanced = False
-    if user_xp.last_practice_date is None:
-        user_xp.current_streak = 1
-        streak_advanced = True
-        # Congelador de bienvenida: red de seguridad desde el primer día.
-        if user_xp.streak_freezes < 1:
-            user_xp.streak_freezes = 1
-    elif user_xp.last_practice_date == today:
-        pass  # Ya practicó hoy, no cambiar streak
-    elif user_xp.last_practice_date == today - timedelta(days=1):
-        user_xp.current_streak += 1
-        streak_advanced = True
-    elif user_xp.last_practice_date == today - timedelta(days=2) and user_xp.streak_freezes > 0:
-        # Faltó EXACTAMENTE un día: consumir un congelador y mantener la racha.
-        user_xp.streak_freezes -= 1
-        user_xp.current_streak += 1
-        streak_advanced = True
-    else:
-        user_xp.current_streak = 1  # Racha rota (2+ días o sin congelador)
-        streak_advanced = True
-
-    if user_xp.current_streak > user_xp.longest_streak:
-        user_xp.longest_streak = user_xp.current_streak
-
-    # Recompensa: cada 7 días de racha, +1 congelador (tope MAX_STREAK_FREEZES).
-    if (
-        streak_advanced
-        and user_xp.current_streak % 7 == 0
-        and user_xp.streak_freezes < MAX_STREAK_FREEZES
-    ):
-        user_xp.streak_freezes += 1
-
-    user_xp.last_practice_date = today
+    # Racha diaria con congeladores (día calendario UTC; ver update_user_streak).
+    await update_user_streak(db, user_id, datetime.now(UTC))
 
     # Actualizar xp_level en User
     result = await db.execute(select(User).where(User.id == user_id))
@@ -227,6 +252,59 @@ async def process_practice_xp(
     }
 
 
+# ===================== INSIGNIAS ANDINAS =====================
+
+PASSING_SCORE = 70.0
+PENTATONIC_KEYWORD = "pentat"
+
+
+async def get_andean_progress(db: AsyncSession, user_id: uuid.UUID) -> dict[str, int]:
+    """Progreso por código de insignia andina, derivado del historial de prácticas.
+
+    - andean_first_clean_breath: mejor score (redondeado hacia abajo).
+    - andean_siku_master: lecciones distintas de zampoña aprobadas (score >= 70).
+    - andean_air_control_30s: mayor duración (s) de una sesión con score >= 80.
+    - andean_pentatonic_scale: lecciones de escala pentatónica aprobadas.
+    """
+    ps = PracticeSession
+    best_score = (
+        await db.execute(select(func.max(ps.score)).where(ps.user_id == user_id))
+    ).scalar() or 0.0
+    siku = (
+        await db.execute(
+            select(func.count(distinct(ps.lesson_id)))
+            .join(Lesson, Lesson.id == ps.lesson_id)
+            .where(
+                ps.user_id == user_id,
+                ps.score >= PASSING_SCORE,
+                Lesson.instrument == "zampona",
+            )
+        )
+    ).scalar() or 0
+    longest_clean = (
+        await db.execute(
+            select(func.max(ps.total_time_seconds)).where(ps.user_id == user_id, ps.score >= 80)
+        )
+    ).scalar() or 0.0
+    pentatonic = (
+        await db.execute(
+            select(func.count(distinct(ps.lesson_id)))
+            .join(Lesson, Lesson.id == ps.lesson_id)
+            .where(
+                ps.user_id == user_id,
+                ps.score >= PASSING_SCORE,
+                func.lower(Lesson.title).contains(PENTATONIC_KEYWORD),
+            )
+        )
+    ).scalar() or 0
+    return {
+        "andean_first_clean_breath": int(best_score),
+        "andean_siku_master": int(siku),
+        "andean_air_control_30s": int(longest_clean),
+        "andean_pentatonic_scale": int(pentatonic),
+    }
+
+
 # ===================== VERIFICACIÓN DE LOGROS =====================
 
 
@@ -255,12 +333,17 @@ async def check_achievements(
     )
     followers_count = followers_count_result.scalar() or 0
 
+    andean = await get_andean_progress(db, user_id)
+
     new_achievements: list[Achievement] = []
 
     for ach in available:
         unlocked = False
 
-        if ach.category == "practice" and ach.requirement_type == "count":
+        if ach.category == "andean":
+            unlocked = andean.get(ach.code, 0) >= ach.requirement_value
+
+        elif ach.category == "practice" and ach.requirement_type == "count":
             unlocked = user_xp.total_lessons_completed >= ach.requirement_value
 
         elif ach.category == "streak" and ach.requirement_type == "streak":
@@ -643,6 +726,8 @@ async def get_all_achievements(db: AsyncSession, user_id: uuid.UUID) -> dict:
     followers_result = await db.execute(followers_q)
     followers_count = followers_result.scalar() or 0
 
+    andean = await get_andean_progress(db, user_id)
+
     achievements = []
     total_unlocked = 0
     for ach in all_achievements:
@@ -651,7 +736,7 @@ async def get_all_achievements(db: AsyncSession, user_id: uuid.UUID) -> dict:
             total_unlocked += 1
 
         # Calcular progreso
-        progress = _get_achievement_progress(ach, user_xp, posts_count, followers_count)
+        progress = _get_achievement_progress(ach, user_xp, posts_count, followers_count, andean)
 
         achievements.append(
             {
@@ -679,10 +764,16 @@ async def get_all_achievements(db: AsyncSession, user_id: uuid.UUID) -> dict:
 
 
 def _get_achievement_progress(
-    ach: Achievement, user_xp: UserXP, posts_count: int, followers_count: int
+    ach: Achievement,
+    user_xp: UserXP,
+    posts_count: int,
+    followers_count: int,
+    andean: dict[str, int] | None = None,
 ) -> int:
     """Calcular progreso actual hacia un logro."""
-    if ach.category == "practice":
+    if ach.category == "andean":
+        return (andean or {}).get(ach.code, 0)
+    elif ach.category == "practice":
         return user_xp.total_lessons_completed
     elif ach.category == "streak":
         return user_xp.current_streak
