@@ -1,0 +1,65 @@
+name: Build Mobile APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: URL base del API (ej. http://34.176.234.173/api)
+        required: false
+        default: http://34.176.234.173/api
+      web_base_url:
+        description: URL base web (ej. http://34.176.234.173)
+        required: false
+        default: http://34.176.234.173
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build Android APK (Firebase + API)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Build release APK
+        working-directory: apps/mobile
+        env:
+          API_BASE_URL: ${{ github.event.inputs.api_base_url || vars.API_BASE_URL || 'http://34.176.234.173/api' }}
+          WEB_BASE_URL: ${{ github.event.inputs.web_base_url || vars.WEB_BASE_URL || 'http://34.176.234.173' }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID || '85165749876-fttcpknkrnmhr7v7nn7m737o3f3e7cnq.apps.googleusercontent.com' }}
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=WEB_BASE_URL="$WEB_BASE_URL" \
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aliento-andino-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30

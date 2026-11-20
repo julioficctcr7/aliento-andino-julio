@@ -34,7 +34,7 @@ services:
 
   # --- FastAPI Backend ---
   backend:
-    image: ${DOCKER_REGISTRY:-alientoandino}/backend:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-alientoandino}/aliento-andino-backend:${IMAGE_TAG:-latest}
     build:
       context: ../apps/backend
       dockerfile: Dockerfile
@@ -46,15 +46,24 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aliento_andino}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-aliento_andino}
       SECRET_KEY: ${SECRET_KEY}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["https://alientoandino.org"]'}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
-      FRONTEND_URL: ${FRONTEND_URL:-https://alientoandino.org}
-      DEBUG: "false"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost"]'}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Aliento Andino}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@alientoandino.org}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin1234!}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador Aliento Andino}
+      VERTEX_PROJECT_ID: ${VERTEX_PROJECT_ID:-}
+      VERTEX_LOCATION: ${VERTEX_LOCATION:-us-central1}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      DEBUG: "${DEBUG:-false}"
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
@@ -72,7 +81,7 @@ services:
 
   # --- Angular Web Admin Panel ---
   web:
-    image: ${DOCKER_REGISTRY:-alientoandino}/web:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-alientoandino}/aliento-andino-web:${IMAGE_TAG:-latest}
     build:
       context: ../apps/web
       dockerfile: Dockerfile
@@ -83,7 +92,7 @@ services:
 
   # --- Docusaurus Manual de Usuario ---
   docs:
-    image: ${DOCKER_REGISTRY:-alientoandino}/docs:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-alientoandino}/aliento-andino-docs:${IMAGE_TAG:-latest}
     build:
       context: ../apps/docs
       dockerfile: Dockerfile
@@ -94,7 +103,7 @@ services:
 
   # --- Microservicio ML ---
   ml:
-    image: ${DOCKER_REGISTRY:-alientoandino}/ml:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-alientoandino}/aliento-andino-ml:${IMAGE_TAG:-latest}
     build:
       context: ../apps/ml
       dockerfile: Dockerfile
@@ -126,7 +135,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_CONF:-./nginx/nginx.http.conf}:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - certbot_webroot:/var/www/certbot:ro
       - certbot_certs:/etc/letsencrypt:ro
