@@ -570,6 +570,33 @@ def get_melodias_lessons(category_id: uuid.UUID, admin_id: uuid.UUID | None) -> 
             .run(["D5", "B4", "D5", "B4", "A4", "G4", "E4"], dur=0.75)
             .build(),
         ),
+        L(
+            {
+                **base,
+                "title": "Llorando se fue (Los Kjarkas)",
+                "description": "Clásico boliviano de Los Kjarkas en ritmo de saya/caporal para zampoña (siku), alternando tubos de filas Arca e Ira en Mi menor.",
+                "instrument": "zampona",
+                "difficulty": "intermedio",
+                "tempo_bpm": 105,
+                "key_signature": "Em",
+                "time_signature": "2/4",
+                "genre": "Saya / Caporal",
+                "artist": "Los Kjarkas",
+                "order": 7,
+            },
+            Seq()
+            .n("B5", 1.5)
+            .run(["A5", "G5", "F#5"], dur=0.5)
+            .n("E5", 1.0)
+            .run(["E5", "G5", "B5", "A5", "G5", "F#5"], dur=0.5)
+            .n("E5", 1.0)
+            .n("C6", 1.0)
+            .run(["B5", "A5"], dur=0.5)
+            .n("G5", 1.0)
+            .run(["A5", "B5", "A5", "G5", "F#5", "G5"], dur=0.5)
+            .n("E5", 1.5)
+            .build(),
+        ),
         # ── Tarka ──
         L(
             {
