@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hand_landmarker/hand_landmarker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/audio/instrument.dart';
 import '../../../../core/audio/instrument_service.dart';
 import '../../../../core/audio/practice_recorder.dart';
 import '../../../../core/audio/tone_synth.dart';
@@ -307,6 +308,14 @@ class _PracticeContentState extends State<_PracticeContent> {
       );
       final lesson = data['lesson'] as LessonModel;
       if (mounted) {
+        final instName = lesson.instrument.toLowerCase();
+        if (instName == 'zampona') {
+          _synth.instrument = InstrumentType.zampona;
+        } else if (instName == 'tarka') {
+          _synth.instrument = InstrumentType.tarka;
+        } else {
+          _synth.instrument = InstrumentType.quena;
+        }
         setState(() {
           _bpm = lesson.tempoBpm;
           _lessonTitle = lesson.title;
