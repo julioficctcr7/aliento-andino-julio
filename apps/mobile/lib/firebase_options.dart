@@ -29,10 +29,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCbj6KDKYsDF31eb7iCg-WlzLttCTouYqY',
-    appId: '1:85165749876:android:8a6195381cc3383240c321',
-    messagingSenderId: '85165749876',
-    projectId: 'aliento-andino',
-    storageBucket: 'aliento-andino.firebasestorage.app',
+    apiKey: 'AIzaSyDTAHls9jUEr9fsCezTbZbDRYKWvgDpjJ0',
+    appId: '1:375288968446:android:d21978a52002f91b0fa1af',
+    messagingSenderId: '375288968446',
+    projectId: 'project-e18cb3de-8c18-45-ff093',
+    storageBucket: 'project-e18cb3de-8c18-45-ff093.firebasestorage.app',
   );
 }
